@@ -1,6 +1,7 @@
 AC_INIT([PISAD], [1.0], [234712280@csu.edu.cn])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign no-dependencies])
 
+AC_CONFIG_HEADERS([config.h])
 
 # check gcc
 AC_PROG_CXX
