@@ -1,4 +1,4 @@
-# ntsm - Nucleotide Sequence/Sample Matcher
+# PISAD
 ## Summary
 
 We developed PISAD, a tool designed to detect anomalies in cohort samples without requiring reference information. It is primarily divided into two stages. Stage 1: We select low-error data from the cohort and conduct reference-free SNP calling to construct a variant sketch. Stage 2: By comparing the k-mer counts of other cohort data to the variant sketch, we infer the relationships between the sample and other samples to detect the sample swap.
