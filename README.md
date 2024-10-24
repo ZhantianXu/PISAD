@@ -42,25 +42,25 @@ Example:
 ```bash
 ./run.sh 21 /h5 /data/hg002.fastq.gz hg002 /snp 1
 ```
-`
+```bash
     \$1:kmer-size 
     \$2:Address where the dsk generated file is stored
     \$3:*.fq (fq or fq.gz file)
     \$4:Name of the generated file
     \$5:Address for storing the extracted snp file
     \$6:Heterozygosity parameter: if Species heterozygosity <1.5% choose 1,otherwise 2
-`
+```
 
 ##### Stage1: construct variant sketch:
 Next, we convert the called SNPs into a variant sketch.
 ```bash
 ./create /snp/hg002_21_2_4_pairex.snp /fa/hg002.fa 21 21
 ```
-`
+```bash
     \$1:snp file 
     \$2:kmer-size
     \$3:Filtering threshold (default: 21)
-`
+```
 
 ##### Stage2: count the k-mers:
 Using this variant sketch we can then count all of these k-mers within a fastq file. Files may be gzipped and multiple threads can be used. Each sample needs a separate run of this command and its own count files.You need to run at least two counts: one for your target sample and one for the sample to be tested.
