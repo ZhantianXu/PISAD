@@ -72,7 +72,7 @@ Here, the -s option allows inputting multiple FA files for variant sketching, se
 If your input file has a high coverage, you can also add the `-m` parameter to control the reading process and save time, such as `-m 10`.
 
 ##### Stage2:Evaluate the samples:
-Input the statistics of your target sample and the sample to be tested to calculate their relationship and detect sample swaps.
+Input the statistics of your target sample and the sample to be tested(can be multiple) to calculate their relationship and detect sample swaps.
 ```bash
 ./ntsmEval -a /eval/hg002_hg002.txt  /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
 ```
