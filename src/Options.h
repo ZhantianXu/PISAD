@@ -24,7 +24,7 @@ namespace opt
 
     int verbose = 0;
     unsigned threads = 1;
-    unsigned k = 19;
+    unsigned k = 21;
     unsigned coverage = 30;
     // double refRatioThrehold = 0.1;
     // double minAlleleCount = 3;
@@ -48,7 +48,7 @@ namespace opt
     string merge = "";
     bool onlyMerge = false;
 
-    double scoreThresh = 0.5;
+    double scoreThresh = 0.4;
     double covSkew = 0.2;
     bool all = true;
     unsigned maxCov = std::numeric_limits<unsigned>::max();

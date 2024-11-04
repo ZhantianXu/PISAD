@@ -702,7 +702,7 @@ public:
 			{
 				Relate info = calcRelatedness1(j, validIndexes);
 				resultsStr1(temp, genotype, info, score,
-							0, j);
+							validIndexes.size(), j);
 				temp += "\n";
 #pragma omp critical(cout)
 				{
@@ -825,7 +825,7 @@ private:
 	vector_of_vectors_t m_cloud;
 	tsl::robin_map<string, unsigned> m_filenameToID;
 	const string m_header =
-		"sample1\tsample2\tscore\tsame\tbin\tindex\trelate\thet\thom\tn\tratio"
+		"sample1\tsample2\tscore\tsame\trelate\thet\thom\tvalid_r\tvalid_s"
 		"\tcov1\tcov2\t";
 
 	struct pair_hash
@@ -950,7 +950,7 @@ private:
 					 unsigned j)
 	{
 		temp.clear();
-		temp += m_filenames[i];
+		temp += m_filenames[0];
 		temp += "\t";
 		temp += m_filenames[j];
 		temp += "\t";
@@ -970,21 +970,17 @@ private:
 		{
 			temp += "\t1\t";
 		}
-		temp += to_string(info.bin);
-		temp += "\t";
-		temp += to_string(info.threshold);
-		temp += "\t";
 		temp += to_string(info.relatedness);
 		temp += "\t";
 		temp += to_string(info.hets2);
 		temp += "\t";
 		temp += to_string(info.homs2); // indexesUsed
 		temp += "\t";
-		temp += to_string(info.hets2 + info.homs2);
-		temp += "\t";
 		temp += to_string(double((info.hets2 + info.homs2) * 1.0 / (info.hets2 + info.homs2 + info.nullpoint) * 1.0));
 		temp += "\t";
-		temp += to_string(genotype.at(i).cov);
+		temp += to_string(double(i * 1.0 / (info.hets2 + info.homs2 + info.nullpoint) * 1.0));
+		temp += "\t";
+		temp += to_string(genotype.at(0).cov);
 		temp += "\t";
 		temp += to_string(genotype.at(j).cov);
 		temp += "\t";
@@ -1219,7 +1215,7 @@ private:
 		vector<bool> binValid(m_distinct.size(), true);
 		for (unsigned j = 0; j < m_distinct.size(); ++j)
 		{
-			if (m_counts.at(index1).at(j).first == 0 && m_counts.at(index1).at(j).second == 0)
+			if (m_counts.at(index1).at(j).first + m_counts.at(index1).at(j).second < 2)
 			// if (m_counts.at(index1).at(j).first <= opt::minCov && m_counts.at(index1).at(j).second <= opt::minCov)
 			{
 				binValid[j] = false;
@@ -1228,7 +1224,7 @@ private:
 		for (unsigned j = 0; j < m_distinct.size(); ++j)
 		{
 			// if (m_counts.at(index2).at(j).first <= opt::minCov && m_counts.at(index2).at(j).second <= opt::minCov)
-			if (m_counts.at(index2).at(j).first == 0 && m_counts.at(index2).at(j).second == 0)
+			if (m_counts.at(index2).at(j).first + m_counts.at(index2).at(j).second < 2)
 			{
 				binValid[j] = false;
 			}
@@ -1246,7 +1242,8 @@ private:
 	// skews the score by coverage
 	double skew(double score, double cov1, double cov2) const
 	{
-		return (score / pow(cov1 * cov2, opt::covSkew));
+		// return (score / pow(cov1 * cov2, opt::covSkew));
+		return (score / (pow(cov1, 0.3) * pow(cov2, 0.2)));
 	}
 
 	// standard computation of Likelihood

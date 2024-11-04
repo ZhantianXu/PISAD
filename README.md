@@ -1,7 +1,7 @@
 # PISAD
 ## Summary
 
-We developed PISAD, a tool designed to detect anomalies in cohort samples without requiring reference information. It is primarily divided into two stages. Stage 1: We select low-error data from the cohort and conduct reference-free SNP calling to construct a variant sketch. Stage 2: By comparing the k-mer counts of other cohort data to the variant sketch, we infer the relationships between the sample and other samples to detect the sample swap.
+We developed PISAD, a tool designed to detect anomalies in cohort samples without requiring reference information. The tool operates in two primary stages. In stage 1, we perform reference-free SNP calling to construct a variant sketch using low-error-rate data from the target individual. In stage 2, we compare the k-mer counts of other cohort samples to the variant sketch to infer relationships between them.
 
 ## Dependencies
 recommend use conda to install
@@ -35,7 +35,7 @@ To install in a specified directory:
 
 ##### Stage1: SNP callng :
 
-First, we select a low-error-rate sequencing dataset as the target sample for rapid SNP calling.
+First, we use a low-error-rate sequencing dataset as the target sample for rapid SNP calling.
 
 Example:
 
@@ -63,18 +63,19 @@ Next, we convert the called SNPs into a variant sketch.
 ```
 
 ##### Stage2: count the k-mers:
-Using this variant sketch we can then count all of these k-mers within a fastq file. Files may be gzipped and multiple threads can be used. Each sample needs a separate run of this command and its own count files.You need to run at least two counts: one for your target sample and one for the sample to be tested.
+we compare the k-mer counts of other cohort samples to the variant sketch to infer relationships between them. Files may be gzipped and multiple threads can be used. Each sample needs a separate run of this command and its own count files.You need to run at least two counts: one for low-error-rate data of target individuals and one for others.
 ```bash
-./ntsmCount -k 21 -t 2 -s /fa/hg002.fa -n eval/hg002 /data/hg002.fastq.gz
-./ntsmCount -k 21 -t 2 -s /fa/hg002.fa -n eval/hg003 /data/hg003.fastq.gz
+./pisadCount -k 21 -t 2 -s /fa/hg002.fa -n eval/hg002 /data/hg002.fastq.gz
+./pisadCount -k 21 -t 2 -s /fa/hg002.fa -n eval/hg003 /data/hg003.fastq.gz
 ```
 Here, the -s option allows inputting multiple FA files for variant sketching, separated by commas, such as `-s /fa/hg002.fa,/fa/hg001.fa`.
-If your input file has a high coverage, you can also add the `-m` parameter to control the reading process and save time, such as `-m 10`.
+If your input file has a high coverage, you can also add the `-m` parameter to control the reading process and save time, such as `-m 2`.
 
 ##### Stage2:Evaluate the samples:
 Input the statistics of your target sample and the sample to be tested(can be multiple) to calculate their relationship and detect sample swaps.
+PS: the first input file should be the low-error-rate samples of target individuals, and the subsequent multiple files are the statistics on this sketch.
 ```bash
-./ntsmEval -a /eval/hg002_hg002.txt  /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
+./pisadEval /eval/hg002_hg002.txt  /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
 ```
 
 
