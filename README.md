@@ -69,10 +69,12 @@ we compare the k-mer counts of other cohort samples to the variant sketch to inf
 ./pisadCount -k 21 -t 2 -s /fa/hg002.fa -n eval/hg003 /data/hg003.fastq.gz
 ```
 Here, the -s option allows inputting multiple FA files for variant sketching, separated by commas, such as `-s /fa/hg002.fa,/fa/hg001.fa`.
+
 If your input file has a high coverage, you can also add the `-m` parameter to control the reading process and save time, such as `-m 2`.
 
 ##### Stage2:Evaluate the samples:
 Input the statistics of your target sample and the sample to be tested(can be multiple) to calculate their relationship and detect sample swaps.
+
 PS: the first input file should be the low-error-rate samples of target individuals, and the subsequent multiple files are the statistics on this sketch.
 ```bash
 ./pisadEval /eval/hg002_hg002.txt  /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
