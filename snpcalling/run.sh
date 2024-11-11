@@ -46,28 +46,29 @@ if [ -f "$2/${prefix}_hete.peak.k$1" ]; then
     n=$(grep -oP '(?<=n:)[0-9]+' "$2/${prefix}_hete.peak.k$1")
     if [ "$n" -eq 2 ]; then
         kcov=$(awk 'NR==2 {print int($1)}' "$2/${prefix}_hete.peak.k$1")
+        half_kcov=$(expr $kcov / 2)
+        coverage=$(awk 'NR==3 {print int($1)}' "$2/${prefix}_hete.peak.k$1")
     elif [ "$n" -eq 1 ]; then
         kcov=$(awk 'NR==2 {print int($1 / 2)}' "$2/${prefix}_hete.peak.k$1")
+        if [ "$exp" -eq 1 ]; then
+            #低杂合度
+            half_kcov=$(expr $kcov / 2)
+            coverage=$(expr $kcov \* 2)
+        else
+            #高杂合度
+            kcov=$(expr $kcov \* 2)
+            half_kcov=$(expr $kcov / 2)
+            coverage=$(expr $kcov \* 2)
+        fi
     else
         echo "Error: n must be 1 or 2. Found: $n"
         exit
     fi
 
-    if [ "$exp" -eq 1 ]; then
-        #低杂合度
-        half_kcov=$(expr $kcov / 2)
-        coverage=$(expr $kcov \* 2)
-    else
-        #高杂合度
-        kcov=$(expr $kcov \* 2)
-        half_kcov=$(expr $kcov / 2)
-        coverage=$(expr $kcov \* 2)
-    fi
-
-    if [ $coverage -gt 5 ]; then
+    if [ $kcov -gt 2 ]; then # >2
         left=$(expr $kcov - $half_kcov)
         right=$(expr $kcov + $half_kcov)
-    elif [ $coverage -gt 3 ]; then
+    elif [ $kcov -gt 1 ]; then
         left=$(expr $kcov - $half_kcov + 1)
         right=$(expr $kcov + $half_kcov)
     else

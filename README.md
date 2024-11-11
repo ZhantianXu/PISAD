@@ -48,7 +48,7 @@ Example:
     \$3:*.fq (fq or fq.gz file)
     \$4:Name of the generated file
     \$5:Address for storing the extracted snp file
-    \$6:Heterozygosity parameter: if Species heterozygosity <1.5% choose 1,otherwise 2
+    \$6:Heterozygosity parameter: if Species heterozygosity <1.2% choose 1,otherwise 2
 ```
 
 ##### Stage1: construct variant sketch:
