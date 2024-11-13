@@ -34,7 +34,7 @@ input_files=$(echo $input_files | tr ' ' ',' | sed 's/,$//')
 # echo $input_files
 
 if [ ! -f "$2/${prefix}_chr_k$1.h5" ]; then 
-    dsk -abundance-min 1 -nb-cores 10 -max-memory 30000 -file $input_files -out-tmp $2 -out-dir $2 -histo 1 -out $2/${prefix}_chr_k$1 -kmer-size $1
+    dsk -nb-cores 10 -max-memory 30000 -file $input_files -out-tmp $2 -out-dir $2 -histo 1 -out $2/${prefix}_chr_k$1 -kmer-size $1
 fi
 
 if [ ! -f "$2/${prefix}_hete.peak.k$1" ]; then
