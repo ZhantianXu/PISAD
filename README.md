@@ -1,24 +1,27 @@
-# PISAD
+# ntsm - Nucleotide Sequence/Sample Matcher
+
 ## Summary
 
-We developed PISAD, a tool designed to detect anomalies in cohort samples without requiring reference information. The tool operates in two primary stages. In stage 1, we perform reference-free SNP calling to construct a variant sketch using low-error-rate data from the target individual. In stage 2, we compare the k-mer counts of other cohort samples to the variant sketch to infer relationships between them.
+We developed PISAD, a tool designed to detect anomalies in cohort samples without requiring reference information. It is primarily divided into two stages. Stage 1: We select low-error data from the cohort and conduct reference-free SNP calling to construct a variant sketch. Stage 2: By comparing the k-mer counts of other cohort data to the variant sketch, we infer the relationships between the sample and other samples to detect the sample swap.
 
 ## Dependencies
+
 recommend use conda to install
-* GCC (Tested on 8.5.0)
-* python(Tested on 3.8.5)
-* gperftools(2.10)
-* hdf5(1.14.3)
-* boost(1.85.0)
-* DSK(2.3.3)
-* Autotools(if directly cloning from repo)
+
+- GCC (Tested on 8.5.0)
+- gperftools(2.10)
+- hdf5(1.14.3)
+- boost(1.85.0)
+
 ## Installation
 
-if cloning directly from the repository run:
+cloning the PISAD repository to your machine and enter its directory.
 
 ```bash
-./autogen.sh
+ git clone https://github.com/ZhantianXu/PISAD.git
+ cd pisad/
 ```
+
 Compiling should be as easy as:
 
 ```bash
@@ -35,50 +38,89 @@ To install in a specified directory:
 
 ##### Stage1: SNP callng :
 
-First, we use a low-error-rate sequencing dataset as the target sample for rapid SNP calling.
+First, we select a low-error-rate sequencing dataset as the target sample for rapid SNP calling.
 
 Example:
 
 ```bash
-./run.sh 21 /h5 /data/hg002.fastq.gz hg002 /snp 1
+./run.sh -i /data/hg002.fastq.gz hg002 -m 0
 ```
+
 ```bash
-    \$1:kmer-size 
-    \$2:Address where the dsk generated file is stored
-    \$3:*.fq (fq or fq.gz file)
-    \$4:Name of the generated file
-    \$5:Address for storing the extracted snp file
-    \$6:Heterozygosity parameter: if Species heterozygosity <1.2% choose 1,otherwise 2
+    Required parameters:
+      -i: Input files ( *.fastq or *.fastq.gz files)
+      -m: Heterozygosity parameter (0 for <1.2%, 1 otherwise)
+    Optional parameters:
+      -k: kmer-size (default: 21)
+      -o: Output prefix (defaults: first input file's prefix)
+      -d1: Directory for dsk files (default: current directory)
+      -d2: Directory for output plot (default: current directory)
+      -d3: Directory for SNP output (default: current directory)
+      -h: Show this help message
+    Advanced optional parameters:
+      -est: est_kmercov (default: Estimated by algorithm)
+      -cutoff: cutoff threshold (defaults: 0.95)
+      -het: Initial heterozygosity (defaults: 0/0.12)
+      -rho: Initial rho value (defaults: 0.2)
+      -setleft: Left boundary of the heterozygous region (defaults: Estimated by algorithm)
+      -setright: Right boundary of the heterozygous region (defaults: Estimated by algorithm)
 ```
 
 ##### Stage1: construct variant sketch:
+
 Next, we convert the called SNPs into a variant sketch.
+
 ```bash
-./create /snp/hg002_21_2_4_pairex.snp /fa/hg002.fa 21 21
+./create -i /snp/hg002_21_2_4_pairex.snp
 ```
+
 ```bash
-    \$1:snp file 
-    \$2:kmer-size
-    \$3:Filtering threshold (default: 21)
+    Required parameters:
+      -i: Input files ( .snp file)
+    Optional parameters:
+      -k: kmer-size (default: 21)
+      -l: Filtering threshold (default: 21)
+      -o: Output prefix (defaults: current directory)
 ```
 
 ##### Stage2: count the k-mers:
+
 we compare the k-mer counts of other cohort samples to the variant sketch to infer relationships between them. Files may be gzipped and multiple threads can be used. Each sample needs a separate run of this command and its own count files.You need to run at least two counts: one for low-error-rate data of target individuals and one for others.
+
 ```bash
-./pisadCount -k 21 -t 2 -s /fa/hg002.fa -n eval/hg002 /data/hg002.fastq.gz
 ./pisadCount -k 21 -t 2 -s /fa/hg002.fa -n eval/hg003 /data/hg003.fastq.gz
 ```
-Here, the -s option allows inputting multiple FA files for variant sketching, separated by commas, such as `-s /fa/hg002.fa,/fa/hg001.fa`.
 
-If your input file has a high coverage, you can also add the `-m` parameter to control the reading process and save time, such as `-m 2`.
-
-##### Stage2:Evaluate the samples:
-Input the statistics of your target sample and the sample to be tested(can be multiple) to calculate their relationship and detect sample swaps.
-
-PS: the first input file should be the low-error-rate samples of target individuals, and the subsequent multiple files are the statistics on this sketch.
 ```bash
-./pisadEval /eval/hg002_hg002.txt  /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
+    Usage: ./pisadCount -s [FASTA] [OPTION]... [FILES...]\n
+    Required options:\n
+        -s, --snp = STR        variant sketch (one or more)\n
+    Optional options:\n
+        -t, --threads = INT    Number of threads to run (default: 1)\n
+        -m, --maxCov = INT     k-mer coverage threshold for early termination (default: inf)\n
+        -i, --information      extra debug information (default: false)\n
+        -k, --kmer = INT       k-mer size used (default: 21)\n
+        -o, --output           Evaluation file path (defaults: current directory)\n
+        -h, --help             Display this dialog\n
+
 ```
 
+Here, the -s option allows inputting multiple FA files for variant sketching, separated by commas, such as `-s /fa/hg002.fa,/fa/hg001.fa`.
+If your input file has a high coverage, you can also add the `-m` parameter to control the reading process and save time, such as `-m 10`.
 
+##### Stage2:Evaluate the samples:
 
+Input the statistics of your target sample and the sample to be tested to calculate their relationship and detect sample swaps.
+PS: the first input file should be the low-error-rate samples of target individuals, and the subsequent multiple files are the statistics on this sketch.
+
+```bash
+./pisadEval /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
+```
+
+```bash
+    Usage: ./pisadEval [OPTION]... [FILES...]\n
+    Optional options:\n
+        -t, --threads = INT    Number of threads to run(default: 1)\n
+        -h, --help             Display this dialog\n"
+
+```
