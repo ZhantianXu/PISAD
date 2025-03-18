@@ -107,16 +107,14 @@ public:
       uint64_t numReads = 0, processedCount = 0;
 
       moodycamel::ConcurrentQueue<kseq_t> workQueue(opt::threads * s_bulkSize);
-      moodycamel::ConcurrentQueue<kseq_t> recycleQueue(opt::threads *
-                                                       s_bulkSize * 2);
+      moodycamel::ConcurrentQueue<kseq_t> recycleQueue(opt::threads * s_bulkSize * 2);
       bool good = true;
       typedef std::vector<kseq_t>::iterator iter_t;
 
       // fill recycleQueue with empty objects
       {
         std::vector<kseq_t> buffer(opt::threads * s_bulkSize * 2, kseq_t());
-        recycleQueue.enqueue_bulk(std::move_iterator<iter_t>(buffer.begin()),
-                                  buffer.size());
+        recycleQueue.enqueue_bulk(std::move_iterator<iter_t>(buffer.begin()),buffer.size());
       }
 
 #pragma omp parallel
@@ -127,8 +125,7 @@ public:
           // file reading init
           gzFile fp;
           fp = gzopen(filenames.at(omp_get_thread_num()).c_str(), "r");
-          std::cerr << "Opening " << filenames.at(omp_get_thread_num())
-                    << std::endl;
+          std::cerr << "Opening " << filenames.at(omp_get_thread_num()) << std::endl;
 
           kseq_t *seq = kseq_init(fp);
 
@@ -139,13 +136,9 @@ public:
           moodycamel::ConsumerToken rctok(recycleQueue);
           moodycamel::ProducerToken rptok(recycleQueue);
 
-          unsigned dequeueSize = recycleQueue.try_dequeue_bulk(
-              rctok, std::move_iterator<iter_t>(readBuffer.begin()),
-              s_bulkSize);
+          unsigned dequeueSize = recycleQueue.try_dequeue_bulk(rctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
           while (dequeueSize == 0) {
-            dequeueSize = recycleQueue.try_dequeue_bulk(
-                rctok, std::move_iterator<iter_t>(readBuffer.begin()),
-                s_bulkSize);
+            dequeueSize = recycleQueue.try_dequeue_bulk(rctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
           }
 
           unsigned size = 0;
@@ -153,8 +146,7 @@ public:
             cpy_kseq(&readBuffer[size++], seq);
             if (dequeueSize == size) {
               // try to insert, if cannot queue is full
-              while (!workQueue.try_enqueue_bulk(
-                  ptok, std::move_iterator<iter_t>(readBuffer.begin()), size)) {
+              while (!workQueue.try_enqueue_bulk(ptok, std::move_iterator<iter_t>(readBuffer.begin()), size)) {
                 // try to work
                 if (kseq_read(seq) >= 0) {
                   //------------------------WORK CODE
@@ -167,9 +159,7 @@ public:
                 }
               }
               // reset buffer
-              dequeueSize = recycleQueue.try_dequeue_bulk(
-                  rctok, std::move_iterator<iter_t>(readBuffer.begin()),
-                  s_bulkSize);
+              dequeueSize = recycleQueue.try_dequeue_bulk(rctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
               while (dequeueSize == 0) {
                 // try to work
                 if (kseq_read(seq) >= 0) {
@@ -181,9 +171,7 @@ public:
                 } else {
                   goto fileEmpty;
                 }
-                dequeueSize = recycleQueue.try_dequeue_bulk(
-                    rctok, std::move_iterator<iter_t>(readBuffer.begin()),
-                    s_bulkSize);
+                dequeueSize = recycleQueue.try_dequeue_bulk(rctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
               }
               size = 0;
             }
@@ -197,15 +185,12 @@ public:
             //------------------------WORK CODE
             // END-----------------------------------------
           }
-          assert(recycleQueue.enqueue_bulk(
-              rptok, std::move_iterator<iter_t>(readBuffer.begin()), size));
+          assert(recycleQueue.enqueue_bulk(rptok, std::move_iterator<iter_t>(readBuffer.begin()), size));
           if (processedCount < numReads) {
             moodycamel::ConsumerToken ctok(workQueue);
             // join in if others are still not finished
             while (processedCount < numReads) {
-              size_t num = workQueue.try_dequeue_bulk(
-                  ctok, std::move_iterator<iter_t>(readBuffer.begin()),
-                  s_bulkSize);
+              size_t num = workQueue.try_dequeue_bulk(ctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
               if (num) {
                 for (unsigned i = 0; i < num; ++i) {
                   //------------------------WORK CODE
@@ -214,9 +199,7 @@ public:
                   //------------------------WORK CODE
                   // END-----------------------------------------
                 }
-                assert(recycleQueue.enqueue_bulk(
-                    rptok, std::move_iterator<iter_t>(readBuffer.begin()),
-                    num));
+                assert(recycleQueue.enqueue_bulk(rptok, std::move_iterator<iter_t>(readBuffer.begin()),num));
               }
             }
           }
@@ -229,9 +212,7 @@ public:
           moodycamel::ProducerToken rptok(recycleQueue);
           while (good) {
             if (workQueue.size_approx() >= s_bulkSize) {
-              size_t num = workQueue.try_dequeue_bulk(
-                  ctok, std::move_iterator<iter_t>(readBuffer.begin()),
-                  s_bulkSize);
+              size_t num = workQueue.try_dequeue_bulk(ctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
               if (num) {
                 for (unsigned i = 0; i < num; ++i) {
                   //------------------------WORK CODE
@@ -240,9 +221,7 @@ public:
                   //------------------------WORK CODE
                   // END-----------------------------------------
                 }
-                assert(recycleQueue.enqueue_bulk(
-                    rptok, std::move_iterator<iter_t>(readBuffer.begin()),
-                    num));
+                assert(recycleQueue.enqueue_bulk(rptok, std::move_iterator<iter_t>(readBuffer.begin()),num));
               }
             }
           }
@@ -271,8 +250,7 @@ public:
       if (pos != std::string::npos && pos1 != std::string::npos && pos1 > pos) {
         name1 = opt::snp[y].substr(pos + 1, pos1 - pos - 1);
       } else {
-        std::cerr << "file " << opt::snp[y] << " can not be calculated"
-                  << std::endl;
+        std::cerr << "file " << opt::snp[y] << " can not be calculated" << std::endl;
         exit(1);
       }
       std::ofstream file(opt::name + extracted + "_" + name1 + ".txt");
@@ -289,13 +267,9 @@ public:
         file << outStr;
 
         if (opt::information) {
-          file << "\n#"
-                  "locusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdisti"
-                  "nctAT\tdistinctCG\tref\tval\n";
+          file << "\nlocusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdistinctAT\tdistinctCG\tref\tval\n";
         } else {
-          file << "\n#"
-                  "locusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdisti"
-                  "nctAT\tdistinctCG\n";
+          file << "\n#locusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdistinctAT\tdistinctCG\n";
         }
         string tempStr_ref, tempStr_val;
         for (size_t i = 0; i < m_alleleIDs[y].size(); ++i) {
@@ -321,8 +295,7 @@ public:
             }
           }
 
-          auto calculateModeAdjusted = [&](const vector<uint64_t> &allele,
-                                           unsigned &countSum) -> int {
+          auto calculateModeAdjusted = [&](const vector<uint64_t> &allele,unsigned &countSum) -> int {
             unordered_map<uint64_t, unsigned> freqMap;
             for (auto id : allele) {
               unsigned freq = m_counts.at(id);

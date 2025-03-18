@@ -41,8 +41,7 @@ unsigned long long transfer_kmer_int(const std::string &s);
 unsigned long long reverse_int(unsigned long long v, int k);
 void read(const std::string &input_filename, int low, int high, int k);
 std::vector<std::string> splitByN(const std::string &sequence);
-void processFile(const std::string &inputFile, const std::string &outputFile,
-                 int k, int limlt);
+void processFile(const std::string &inputFile, const std::string &outputFile,int k, int limlt);
 std::string transfer_int_kmer(unsigned long long val, int k);
 std::string transfer_binary_string_2_kmer(const std::string &s);
 

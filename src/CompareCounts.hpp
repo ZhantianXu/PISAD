@@ -62,12 +62,9 @@ public:
         }
       }
     }
-    m_counts = PairedCount(filenames.size(),
-                           vector<pair<unsigned, unsigned>>(m_distinct.size()));
-    m_counts1 = PairedCount(
-        filenames.size(), vector<pair<unsigned, unsigned>>(m_distinct.size()));
-    m_sum = PairedCount(filenames.size(),
-                        vector<pair<unsigned, unsigned>>(m_distinct.size()));
+    m_counts = PairedCount(filenames.size(),vector<pair<unsigned, unsigned>>(m_distinct.size()));
+    m_counts1 = PairedCount(filenames.size(), vector<pair<unsigned, unsigned>>(m_distinct.size()));
+    m_sum = PairedCount(filenames.size(),vector<pair<unsigned, unsigned>>(m_distinct.size()));
 
 #pragma omp parallel for
     for (unsigned i = 0; i < m_filenames.size(); ++i) {
@@ -192,8 +189,7 @@ private:
   vector<string> m_locusIDs;
   tsl::robin_map<string, unsigned> m_locusIDToIndex;
   tsl::robin_map<string, unsigned> m_filenameToID;
-  const string m_header = "sample\tscore\tsame\trelate\tvalid_relate_"
-                          "sites\tvalid_sites\tsites\tcov\t";
+  const string m_header = "sample\tscore\tsame\trelate\tvalid_relate_sites\tvalid_sites\tsites\tcov\t";
 
   struct pair_hash {
     template <class T1, class T2>
@@ -210,8 +206,7 @@ private:
       if (counts.at(i).first > opt::minCov) {
         if (counts.at(i).second > opt::minCov) {
           ++count.hets;
-          hetCount.push_back(double(counts.at(i).first) /
-                             double(counts.at(i).first + counts.at(i).second));
+          hetCount.push_back(double(counts.at(i).first) /double(counts.at(i).first + counts.at(i).second));
         } else {
           ++count.homs;
         }
@@ -262,8 +257,7 @@ private:
     return (std::make_pair(count1, count2));
   }
 
-  double computeSumLogPSingle(unsigned index,
-                              const vector<unsigned> &pos) const {
+  double computeSumLogPSingle(unsigned index,const vector<unsigned> &pos) const {
     double sumLogP = 0;
     for (vector<unsigned>::const_iterator i = pos.begin(); i != pos.end();
          ++i) {
@@ -272,13 +266,11 @@ private:
       if (m_counts1.at(index).at(*i).first > 0) // opt::minCov
       {
         freqAT = double(m_counts1.at(index).at(*i).first) /
-                 double(m_counts1.at(index).at(*i).first +
-                        m_counts1.at(index).at(*i).second);
+                 double(m_counts1.at(index).at(*i).first + m_counts1.at(index).at(*i).second);
       }
       if (m_counts1.at(index).at(*i).second > 0) {
         freqCG = double(m_counts1.at(index).at(*i).second) /
-                 double(m_counts1.at(index).at(*i).first +
-                        m_counts1.at(index).at(*i).second);
+                 double(m_counts1.at(index).at(*i).first + m_counts1.at(index).at(*i).second);
       }
       sumLogP += m_counts1.at(index).at(*i).first * freqAT +
                  m_counts1.at(index).at(*i).second * freqCG + 1;
@@ -326,8 +318,7 @@ private:
   }
 
   // compute only sites that aren't missing
-  double computeLogLikelihood(unsigned index1,
-                              const vector<unsigned> &validIndexes) {
+  double computeLogLikelihood(unsigned index1,const vector<unsigned> &validIndexes) {
     return -2.0 * (computeSumLogPJoint(index1, validIndexes) -
                    computeSumLogPSingle(index1, validIndexes));
   }
@@ -338,8 +329,7 @@ private:
     }
   }
 
-  Relate calcRelatedness1(unsigned index2,
-                          const vector<unsigned> &validIndexes) {
+  Relate calcRelatedness1(unsigned index2,const vector<unsigned> &validIndexes) {
     Relate info = {};
     vector<double> ratios;
 
@@ -348,8 +338,7 @@ private:
       if (m_counts1.at(index2).at(*i).first > 2 or
           m_counts1.at(index2).at(*i).second > 2) {
         double ratio = m_counts1.at(index2).at(*i).first * 1.0 /
-                       (m_counts1.at(index2).at(*i).first +
-                        m_counts1.at(index2).at(*i).second);
+                       (m_counts1.at(index2).at(*i).first + m_counts1.at(index2).at(*i).second);
         ratios.push_back(ratio);
       }
     }
@@ -382,30 +371,21 @@ private:
     double upper_threshold = 1.0 - info.threshold;
     for (vector<unsigned>::const_iterator i = validIndexes.begin();
          i != validIndexes.end(); ++i) {
-      if (m_counts1.at(index2).at(*i).first > 2 or
-          m_counts1.at(index2).at(*i).second > 2) {
+      if (m_counts1.at(index2).at(*i).first > 2 or m_counts1.at(index2).at(*i).second > 2) {
 
         if (m_counts1.at(index2).at(*i).first * 1.0 /
-                (m_counts1.at(index2).at(*i).first +
-                 m_counts1.at(index2).at(*i).second) <
-            info.threshold) {
+                (m_counts1.at(index2).at(*i).first + m_counts1.at(index2).at(*i).second) < info.threshold) {
           ++info.homs2;
         }
         if (m_counts1.at(index2).at(*i).second * 1.0 /
-                (m_counts1.at(index2).at(*i).first +
-                 m_counts1.at(index2).at(*i).second) <
-            info.threshold) {
+                (m_counts1.at(index2).at(*i).first +m_counts1.at(index2).at(*i).second) < info.threshold) {
           ++info.homs2;
         }
 
         if (m_counts1.at(index2).at(*i).first * 1.0 /
-                    (m_counts1.at(index2).at(*i).first +
-                     m_counts1.at(index2).at(*i).second) >
-                info.threshold &&
+                    (m_counts1.at(index2).at(*i).first + m_counts1.at(index2).at(*i).second) > info.threshold &&
             m_counts1.at(index2).at(*i).first * 1.0 /
-                    (m_counts1.at(index2).at(*i).first +
-                     m_counts1.at(index2).at(*i).second) <
-                upper_threshold) {
+                    (m_counts1.at(index2).at(*i).first + m_counts1.at(index2).at(*i).second) < upper_threshold) {
           ++info.hets2;
         }
       } else {
@@ -417,7 +397,6 @@ private:
   }
 
   double computeErrorRate(unsigned index) const {
-    // 1-(dat$recordedKmers*2/(dat$totalKmers*(dat$distinctKmers/genomeSize)))^(1/kmerSize)
     if (m_rawTotalCounts.at(index) > 0 && m_kmerSize.at(index) > 0) {
       uint64_t sum = 0;
       uint64_t distinctKmers = 0;

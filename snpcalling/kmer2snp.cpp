@@ -64,16 +64,14 @@ using Map1 = phmap::parallel_flat_hash_map<
 using Map2 = phmap::parallel_flat_hash_map<
     unsigned long long, std::vector<unsigned long long>,
     std::hash<unsigned long long>, std::equal_to<unsigned long long>,
-    std::allocator<
-        std::pair<const unsigned long long, std::vector<unsigned long long>>>,
+    std::allocator<std::pair<const unsigned long long, std::vector<unsigned long long>>>,
     6, std::mutex>;
 
 using Map3 = phmap::parallel_flat_hash_map<
     std::pair<unsigned long long, unsigned long long>,
     std::pair<std::string, std::string>, pair_hash,
     std::equal_to<std::pair<unsigned long long, unsigned long long>>,
-    std::allocator<
-        std::pair<const std::pair<unsigned long long, unsigned long long>,
+    std::allocator<std::pair<const std::pair<unsigned long long, unsigned long long>,
                   std::pair<std::string, std::string>>>,
     6, // 假设你需要6个子映射
     std::mutex>;
@@ -88,11 +86,9 @@ std::pair<std::string, std::string> extend_to_left(unsigned long long h1,
                                                    const Map1 &right_index,
                                                    int k);
 std::pair<std::string, std::string>
-extend_to_right(const std::string &h1_binary, const Map1 &left_index,
-                const Map1 &right_index, int k);
+extend_to_right(const std::string &h1_binary, const Map1 &left_index,const Map1 &right_index, int k);
 std::tuple<std::string, std::string, char, bool>
-extend_one_pair(unsigned long long h1, unsigned long long h2,
-                const Map1 &left_index, const Map1 &right_index, int k);
+extend_one_pair(unsigned long long h1, unsigned long long h2,const Map1 &left_index, const Map1 &right_index, int k);
 std::string reverse_binary_string(const std::string &s);
 unsigned long long transfer_kmer_int(const std::string &s);
 std::string transfer_int_kmer(unsigned long long val, int k);
@@ -101,12 +97,9 @@ unsigned long long reverse_int(unsigned long long v, int k);
 std::string reverse_binary_string(const std::string &s);
 void print_list(const std::vector<std::string> &l);
 int file_lines(const std::string &filename);
-void build_graph_and_find_components(
-    const std::vector<std::tuple<unsigned long long, unsigned long long, char>>
-        &edges,
-    int k, std::string &name, Map3 &extendKmers, int lowCov, int highCov);
-std::tuple<Map1, Map1, Map2> read(const std::string &input_filename, int low,
-                                  int high, int k);
+void build_graph_and_find_components(const std::vector<std::tuple<unsigned long long, unsigned long long, char>>
+        &edges,int k, std::string &name, Map3 &extendKmers, int lowCov, int highCov);
+std::tuple<Map1, Map1, Map2> read(const std::string &input_filename, int low,int high, int k);
 
 void print_resident_memory() {
   std::ifstream statm("/proc/self/statm");
@@ -119,9 +112,8 @@ void print_resident_memory() {
   statm >> size >> resident >> shared >> text >> lib >> data >> dt;
   statm.close();
 
-  long page_size = sysconf(_SC_PAGE_SIZE); // 获取页面大小（以字节为单位）
-  double resident_gb = static_cast<double>(resident) * page_size /
-                       (1024 * 1024 * 1024); // 转换为GB
+  long page_size = sysconf(_SC_PAGE_SIZE); 
+  double resident_gb = static_cast<double>(resident) * page_size /(1024 * 1024 * 1024); 
   std::cout << "Resident memory: " << resident_gb << " GB" << std::endl;
 }
 double getPeakRSSInGB() {
@@ -146,22 +138,21 @@ double getPeakRSSInGB() {
   return peakRssGB;
 }
 
-std::tuple<unsigned long long, char> remove_bits(unsigned long long val, int k,
-                                                 int n) {
+std::tuple<unsigned long long, char> remove_bits(unsigned long long val, int k,int n) {
   // Calculate the mask to extract the lower k bits
   unsigned long long mask = (1ULL << k) - 1;
   unsigned long long binarykmer = val & mask;
   int x1;
   int x2;
-  if (n == 0) // 去除中间
+  if (n == 0) 
   {
     x1 = k / 2 - 1;
     x2 = k / 2;
-  } else if (n == 1) // 去除最右边的
+  } else if (n == 1) 
   {
     x1 = 0;
     x2 = 1;
-  } else if (n == 2) // 去除最左边的
+  } else if (n == 2) 
   {
     x1 = k - 2;
     x2 = k - 1;
@@ -294,9 +285,7 @@ int main(int argc, char **argv) {
     auto time2 = std::chrono::high_resolution_clock::now();
 
     std::cout << "Finished reading (kmer cov) file, time cost: "
-              << std::chrono::duration_cast<std::chrono::duration<double>>(
-                     time2 - time1)
-                     .count()
+              << std::chrono::duration_cast<std::chrono::duration<double>>(time2 - time1).count()
               << " seconds" << std::endl;
 
     std::cout << "left_index count: " << left_index.size() << std::endl;
@@ -308,33 +297,26 @@ int main(int argc, char **argv) {
 
     auto time3 = std::chrono::high_resolution_clock::now();
     std::cout << "Added SNP edges, time cost: "
-              << std::chrono::duration_cast<std::chrono::duration<double>>(
-                     time3 - time2)
-                     .count()
+              << std::chrono::duration_cast<std::chrono::duration<double>>(time3 - time2).count()
               << " seconds" << std::endl;
     std::cout << "Edge count: " << edges.size() << std::endl;
 
     auto time4 = std::chrono::high_resolution_clock::now();
     std::string output_filename = output + filename;
-    build_graph_and_find_components(edges, k, output_filename, extendKmers,
-                                    lowCov, highCov);
+    build_graph_and_find_components(edges, k, output_filename, extendKmers,lowCov, highCov);
 
     auto time6 = std::chrono::high_resolution_clock::now();
     std::cout << "Built graph, time cost: "
-              << std::chrono::duration_cast<std::chrono::duration<double>>(
-                     time6 - time4)
-                     .count()
+              << std::chrono::duration_cast<std::chrono::duration<double>>(time6 - time4).count()
               << " seconds" << std::endl;
 
     double peakRssGB = getPeakRSSInGB();
     std::cout << "Peak Memory Usage: " << peakRssGB << " GB" << std::endl;
   } catch (const std::out_of_range &e) {
-    std::cerr << "Error: std::out_of_range exception - " << e.what()
-              << std::endl;
+    std::cerr << "Error: std::out_of_range exception - " << e.what()<< std::endl;
     return 1;
   } catch (const std::invalid_argument &e) {
-    std::cerr << "Error: std::invalid_argument exception - " << e.what()
-              << std::endl;
+    std::cerr << "Error: std::invalid_argument exception - " << e.what()<< std::endl;
     return 1;
   } catch (...) {
     std::cerr << "Error: Unknown exception" << std::endl;
@@ -375,8 +357,7 @@ snp_edges(const Map2 &m_index, int k, const Map1 &left_index,
     std::advance(it_start, thread_id * chunk_size);
 
     auto it_end = it_start;
-    std::advance(it_end,
-                 std::min(chunk_size, total_keys - thread_id * chunk_size));
+    std::advance(it_end,std::min(chunk_size, total_keys - thread_id * chunk_size));
 
     // Iterate over the assigned range of keys
     for (auto it = it_start; it != it_end; ++it) {
@@ -479,8 +460,7 @@ extend_to_right(const std::string &h1_binary, const Map1 &left_index,
                 const Map1 &right_index, int k) {
   int mid = k / 2;
   std::string temp = h1_binary, Rtemp = reverse_binary_string(h1_binary);
-  unsigned long long key =
-      std::stoull(temp.substr(temp.size() - (2 * k - 2)), nullptr, 2);
+  unsigned long long key = std::stoull(temp.substr(temp.size() - (2 * k - 2)), nullptr, 2);
   unsigned long long Rkey = std::stoull(Rtemp.substr(0, 2 * k - 2), nullptr, 2);
   std::string add = "", Radd = "";
 
@@ -667,10 +647,8 @@ std::tuple<Map1, Map1, Map2> read(const std::string &input_filename, int low,
 
     // 定义内存数据类型
     H5::CompType mtype(sizeof(KmerData));
-    mtype.insertMember("value", HOFFSET(KmerData, value),
-                       H5::PredType::NATIVE_UINT64);
-    mtype.insertMember("abundance", HOFFSET(KmerData, abundance),
-                       H5::PredType::NATIVE_UINT32);
+    mtype.insertMember("value", HOFFSET(KmerData, value),H5::PredType::NATIVE_UINT64);
+    mtype.insertMember("abundance", HOFFSET(KmerData, abundance),H5::PredType::NATIVE_UINT32);
 
     // 从数据集中读取数据
     dataset.read(dataBuffer.data(), mtype);
@@ -800,8 +778,7 @@ unsigned long long reverse_int(unsigned long long var, int k) {
       break;
     }
 
-    reversed |= twoBits << (2 * (groupCount - 1 -
-                                 i)); // 将第i组的两位放置到倒数第i组的位置
+    reversed |= twoBits << (2 * (groupCount - 1 - i)); // 将第i组的两位放置到倒数第i组的位置
   }
 
   return reversed;
@@ -815,8 +792,7 @@ void print_list(const std::vector<std::string> &l) {
 
 int file_lines(const std::string &filename) {
   std::ifstream infile(filename);
-  return std::count(std::istreambuf_iterator<char>(infile),
-                    std::istreambuf_iterator<char>(), '\n');
+  return std::count(std::istreambuf_iterator<char>(infile),std::istreambuf_iterator<char>(), '\n');
 }
 
 void build_graph_and_find_components(
@@ -824,16 +800,13 @@ void build_graph_and_find_components(
         &edges,
     int k, std::string &name, Map3 &extendKmers, int lowCov, int highCov) {
   // Output SNP pairs to file
-  std::string snpFile = name + "_" + std::to_string(k) + "_" +
-                        std::to_string(lowCov) + "_" + std::to_string(highCov) +
-                        "_pair.snp";
+  std::string snpFile = name + "_" + std::to_string(k) + "_" +std::to_string(lowCov) + "_" + std::to_string(highCov) +"_pair.snp";
   std::ofstream snpOut(snpFile);
   if (!snpOut) {
     std::cerr << "Failed to open output file: " << snpFile << std::endl;
     return;
   }
-  std::string exsnpFile = name + "_" + std::to_string(k) + "_" +
-                          std::to_string(lowCov) + "_" +
+  std::string exsnpFile = name + "_" + std::to_string(k) + "_" + std::to_string(lowCov) + "_" +
                           std::to_string(highCov) + "_pairex.snp";
   std::ofstream exsnpOut(exsnpFile);
   if (!exsnpOut) {
@@ -891,8 +864,7 @@ void build_graph_and_find_components(
     auto v = boost::target(e, G);
     if (mate[u] == v && mate[v] == u) {
       int w = boost::get(weight_map, e);
-      selectedMates[std::make_pair(reverse_vertex_map[u],
-                                   reverse_vertex_map[v])] = w;
+      selectedMates[std::make_pair(reverse_vertex_map[u],reverse_vertex_map[v])] = w;
       if (weightDis.find(w) == weightDis.end()) {
         weightDis[w] = 0;
       }
@@ -901,8 +873,7 @@ void build_graph_and_find_components(
   }
 
   // Sort weight distribution
-  std::vector<std::pair<int, int>> sortedWeightDis(weightDis.begin(),
-                                                   weightDis.end());
+  std::vector<std::pair<int, int>> sortedWeightDis(weightDis.begin(),weightDis.end());
   std::sort(sortedWeightDis.begin(), sortedWeightDis.end());
 
   int weightThreshold = calc_weightThreshold(k);

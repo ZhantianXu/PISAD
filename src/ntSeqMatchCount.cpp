@@ -31,10 +31,9 @@ void printHelpDialog() {
       "  -i, --information      extra debug information.\n"
       "  -k, --kmer = INT       k-mer size used. [21]\n"
       "  -h, --help             Display this dialog.\n"
-      "  -o, --output           Evaluation file path\n"
+      "  -o, --output           Evaluation file path\n";
 
-      cerr
-      << dialog << endl;
+      cerr << dialog << endl;
   exit(EXIT_SUCCESS);
 }
 
