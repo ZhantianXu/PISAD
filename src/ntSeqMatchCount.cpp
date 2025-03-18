@@ -22,17 +22,19 @@ using namespace std;
 void printHelpDialog() {
   const char dialog[] =
       "Usage: " PROGRAM " -s [FASTA] [OPTION]... [FILES...]\n"
+      "Required options:\n"
       "  -s, --snp = STR        variant sketch (one or more) [required]\n"
+      "Optional options:\n"
       "  -t, --threads = INT    Number of threads to run.[1]\n"
       "  -m, --maxCov = INT     k-mer coverage threshold for early "
       "termination. [inf]\n"
       "  -i, --information      extra debug information.\n"
       "  -k, --kmer = INT       k-mer size used. [21]\n"
       "  -h, --help             Display this dialog.\n"
-      "  -n, --name             Evaluation file path\n"
-      "      --version          Print version information.\n";
+      "  -o, --output           Evaluation file path\n"
 
-  cerr << dialog << endl;
+      cerr
+      << dialog << endl;
   exit(EXIT_SUCCESS);
 }
 
@@ -53,11 +55,11 @@ int main(int argc, char *argv[]) {
       {"help", no_argument, NULL, 'h'},
       {"version", no_argument, &OPT_VERSION, 1},
       {"information", no_argument, NULL, 'i'},
-      {"name", required_argument, NULL, 'n'},
+      {"output", required_argument, NULL, 'n'},
       {NULL, 0, NULL, 0}};
 
   int option_index = 0;
-  while ((cov = getopt_long(argc, argv, "s:t:n:ihk:m:", long_options,
+  while ((cov = getopt_long(argc, argv, "s:t:o:ihk:m:", long_options,
                             &option_index)) != -1) {
     istringstream arg(optarg != NULL ? optarg : "");
     switch (cov) {
@@ -69,7 +71,7 @@ int main(int argc, char *argv[]) {
       opt::information = true;
       break;
     }
-    case 'n': {
+    case 'o': {
       stringstream convert(optarg);
       if (!(convert >> opt::name)) {
         cerr << "Error - Invalid parameter n: " << optarg << endl;

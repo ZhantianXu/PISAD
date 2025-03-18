@@ -15,15 +15,17 @@ est=""
 het=""
 setleft=""
 setright=""
+thread=""
 
 # 打印使用说明的函数
 print_usage() {
-    echo "Usage: $0 -i <input_files> -m <heterozygosity> [-k <kmer_size>] [-o <prefix>] [-d1 <tmp_dir>] [-d2 <plot_dir>] [-d3 <snp_dir>] [-h]"
+    echo "Usage: $0 -i <input_files> -m <heterozygosity> [options...]"
     echo "Required parameters:"
     echo "  -i: Input files (space-separated *.fastq or *.fastq.gz files, no quotes needed)"
     echo "  -m: Heterozygosity parameter (0 for <1.2%, 1 otherwise)"
     echo "Optional parameters:"
     echo "  -k: kmer-size (default: 21)"
+    echo "  -t: thread (default: 8)"
     echo "  -o: Output prefix (defaults: first input file's prefix)"
     echo "  -d1: Directory for dsk files (default: current directory)"
     echo "  -d2: Directory for output plot (default: current directory)"
@@ -65,6 +67,7 @@ while [ $# -gt 0 ]; do
             done
             ;;
         -k) check_value "$1" "$2"; kmer_size="$2"; shift 2;;
+        -t) check_value "$1" "$2"; thread="$2"; shift 2;;
         -o) check_value "$1" "$2"; prefix="$2"; shift 2;;
         -d1) check_value "$1" "$2"; tmp_dir="$2"; shift 2;;
         -d2) check_value "$1" "$2"; plot_dir="$2"; shift 2;;
@@ -94,6 +97,7 @@ fi
 kmer_size=${kmer_size:-21}
 tmp_dir=${tmp_dir:-"."}
 snp_dir=${snp_dir:-"."}
+thread=${thread:-8}
 
 # 如果 prefix 未通过 -o 指定，则从第一个 input_files 中提取
 if [ -z "$prefix" ]; then
@@ -108,7 +112,7 @@ echo "Prefix: $prefix"
 
 # dsk 处理
 if [ ! -f "$tmp_dir/${prefix}.h5" ]; then 
-    dsk -nb-cores 10 -max-memory 20000 -file "$input_files" -out-tmp "$tmp_dir" -out-dir "$tmp_dir" \
+    dsk -nb-cores "$thread" -max-memory 20000 -file "$input_files" -out-tmp "$tmp_dir" -out-dir "$tmp_dir" \
         -histo 1 -out "$tmp_dir/${prefix}" -kmer-size "$kmer_size"
 fi
 
@@ -143,7 +147,7 @@ fi
 
 # SNP 处理
 if [ ! -f "${snp_dir}/${prefix}_${kmer_size}_${left}_${right}_pairex.snp" ]; then
-    command="./kmer2snp -i $tmp_dir/${prefix} -l $left -r $right -k $kmer_size -t 8 -o $snp_dir/"
+    command="./kmer2snp -i $tmp_dir/${prefix} -l $left -r $right -k $kmer_size -t $thread -o $snp_dir/"
     echo "$command"
-    ./kmer2snp -i "$tmp_dir/${prefix}" -l "$left" -r "$right" -k "$kmer_size" -t 8 -o "$snp_dir/"
+    ./kmer2snp -i "$tmp_dir/${prefix}" -l "$left" -r "$right" -k "$kmer_size" -t "$thread" -o "$snp_dir/"
 fi

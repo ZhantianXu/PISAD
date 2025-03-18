@@ -24,6 +24,7 @@ using namespace std;
 void printHelpDialog() {
   const string dialog =
       "Usage: " PROGRAM "[OPTION]... [FILES...]\n"
+      "Optional options:\n"
       "  -t, --threads = INT    Number of threads to run.[1]\n"
       "  -h, --help             Display this dialog.\n";
   cerr << dialog << endl;

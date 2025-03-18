@@ -38,31 +38,32 @@ To install in a specified directory:
 
 ##### Stage1: SNP callng :
 
-First, we select a low-error-rate sequencing dataset as the target sample for rapid SNP calling.
+First, we select a low-error-rate sequencing dataset as the target sample for rapid SNP calling. It supports multi-threaded processing.
 
 Example:
 
 ```bash
-./run.sh -i /data/hg002.fastq.gz hg002 -m 0
+./run.sh -i /data/hg002.fastq.gz -m 0
 ```
 
 ```bash
     Required parameters:
-      -i: Input files ( *.fastq or *.fastq.gz files)
-      -m: Heterozygosity parameter (0 for <1.2%, 1 otherwise)
+      -i:        Input files ( *.fastq or *.fastq.gz files)
+      -m:        Heterozygosity parameter (0 for <1.2%, 1 otherwise)
     Optional parameters:
-      -k: kmer-size (default: 21)
-      -o: Output prefix (defaults: first input file's prefix)
-      -d1: Directory for dsk files (default: current directory)
-      -d2: Directory for output plot (default: current directory)
-      -d3: Directory for SNP output (default: current directory)
-      -h: Show this help message
+      -k:        kmer-size (default: 21)
+      -t:        thread (default: 8)"
+      -o:        Output prefix (defaults: first input file's prefix)
+      -d1:       Directory for dsk files (default: current directory)
+      -d2:       Directory for output plot (default: current directory)
+      -d3:       Directory for SNP output (default: current directory)
+      -h:        Show this help message
     Advanced optional parameters:
-      -est: est_kmercov (default: Estimated by algorithm)
-      -cutoff: cutoff threshold (defaults: 0.95)
-      -het: Initial heterozygosity (defaults: 0/0.12)
-      -rho: Initial rho value (defaults: 0.2)
-      -setleft: Left boundary of the heterozygous region (defaults: Estimated by algorithm)
+      -est:      est_kmercov (default: Estimated by algorithm)
+      -cutoff:   cutoff threshold (defaults: 0.95)
+      -het:      Initial heterozygosity (defaults: 0/0.12)
+      -rho:      Initial rho value (defaults: 0.2)
+      -setleft:  Left boundary of the heterozygous region (defaults: Estimated by algorithm)
       -setright: Right boundary of the heterozygous region (defaults: Estimated by algorithm)
 ```
 
@@ -76,32 +77,32 @@ Next, we convert the called SNPs into a variant sketch.
 
 ```bash
     Required parameters:
-      -i: Input files ( .snp file)
+      -i:        Input files ( .snp file)
     Optional parameters:
-      -k: kmer-size (default: 21)
-      -l: Filtering threshold (default: 21)
-      -o: Output prefix (defaults: current directory)
+      -k:        kmer-size (default: 21)
+      -l:        Filtering threshold (default: 21)
+      -o:        Output prefix (defaults: current directory)
 ```
 
 ##### Stage2: count the k-mers:
 
-we compare the k-mer counts of other cohort samples to the variant sketch to infer relationships between them. Files may be gzipped and multiple threads can be used. Each sample needs a separate run of this command and its own count files.You need to run at least two counts: one for low-error-rate data of target individuals and one for others.
+we compare the k-mer counts of other cohort samples to the variant sketch to infer relationships between them. Files may be gzipped and multiple threads can be used.
 
 ```bash
-./pisadCount -k 21 -t 2 -s /fa/hg002.fa -n eval/hg003 /data/hg003.fastq.gz
+./pisadCount -s /fa/hg002.fa /data/hg003.fastq.gz
 ```
 
 ```bash
-    Usage: ./pisadCount -s [FASTA] [OPTION]... [FILES...]\n
-    Required options:\n
-        -s, --snp = STR        variant sketch (one or more)\n
-    Optional options:\n
-        -t, --threads = INT    Number of threads to run (default: 1)\n
-        -m, --maxCov = INT     k-mer coverage threshold for early termination (default: inf)\n
-        -i, --information      extra debug information (default: false)\n
-        -k, --kmer = INT       k-mer size used (default: 21)\n
-        -o, --output           Evaluation file path (defaults: current directory)\n
-        -h, --help             Display this dialog\n
+    Usage: ./pisadCount -s [FASTA] [OPTION]... [FILES...]
+    Required options:
+        -s:         variant sketch (one or more)
+    Optional options:
+        -t:      Number of threads to run (default: 1)
+        -m:      k-mer coverage threshold for early termination (default: inf)
+        -i:      extra debug information
+        -k:      k-mer size used (default: 21)
+        -o:      Evaluation file path (defaults: current directory)
+        -h:      Display this dialog
 
 ```
 
@@ -110,17 +111,16 @@ If your input file has a high coverage, you can also add the `-m` parameter to c
 
 ##### Stage2:Evaluate the samples:
 
-Input the statistics of your target sample and the sample to be tested to calculate their relationship and detect sample swaps.
-PS: the first input file should be the low-error-rate samples of target individuals, and the subsequent multiple files are the statistics on this sketch.
+Input the statistics of samples to calculate their relationship and detect sample swaps.
 
 ```bash
 ./pisadEval /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
 ```
 
 ```bash
-    Usage: ./pisadEval [OPTION]... [FILES...]\n
-    Optional options:\n
-        -t, --threads = INT    Number of threads to run(default: 1)\n
-        -h, --help             Display this dialog\n"
+    Usage: ./pisadEval [OPTION]... [FILES...]
+    Optional options:
+        -t:      Number of threads to run(default: 1)
+        -h:      Display this dialog
 
 ```
