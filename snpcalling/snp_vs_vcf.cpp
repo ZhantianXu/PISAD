@@ -12,6 +12,7 @@
 #include <map>
 #include <sstream>
 #include <set>
+#include <cstdint>
 
 using namespace std;
 

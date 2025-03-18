@@ -9,7 +9,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <iterator>
-#include <malloc.h>
+#include <stdlib.h>
 #include <omp.h>
 #include <sstream>
 #include <string>
