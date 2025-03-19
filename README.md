@@ -6,8 +6,6 @@ We developed PISAD, a tool designed to detect anomalies in cohort samples withou
 
 ## Dependencies
 
-recommend use conda to install
-
 - GCC (Tested on 8.5.0)
 - gperftools(2.10)
 - hdf5(1.14.3)
@@ -15,11 +13,9 @@ recommend use conda to install
 
 ## Installation
 
-cloning the PISAD repository to your machine and enter its directory.
-
+pisad can be installed with conda using the command:
 ```bash
- git clone https://github.com/ZhantianXu/PISAD.git
- cd pisad/
+conda install bioconda::pisad
 ```
 
 If cloning directly from the repository run:
