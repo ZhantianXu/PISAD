@@ -1,4 +1,4 @@
-# ntsm - Nucleotide Sequence/Sample Matcher
+# PISAD - Phsaed Intraspecies Sample Anomalies Detection tool
 
 ## Summary
 
@@ -20,6 +20,11 @@ cloning the PISAD repository to your machine and enter its directory.
 ```bash
  git clone https://github.com/ZhantianXu/PISAD.git
  cd pisad/
+```
+
+If cloning directly from the repository run:
+```bash
+./autogen.sh
 ```
 
 Compiling should be as easy as:
