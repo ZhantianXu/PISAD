@@ -118,7 +118,7 @@ fi
 
 # kcov.py 处理
 if ! ls "$tmp_dir/${prefix}"*.png >/dev/null 2>&1; then
-    cmd="python kcov.py -i \"$tmp_dir/${prefix}.histo\" -m \"$exp\""
+    cmd="kcov.py -i \"$tmp_dir/${prefix}.histo\" -m \"$exp\""
     [ -n "$kmer_size" ] && cmd="$cmd -k \"$kmer_size\""
     [ -n "$est" ] && cmd="$cmd -est \"$est\""
     [ -n "$cutoff" ] && cmd="$cmd -cutoff \"$cutoff\""
@@ -147,7 +147,7 @@ fi
 
 # SNP 处理
 if [ ! -f "${snp_dir}/${prefix}_${kmer_size}_${left}_${right}_pairex.snp" ]; then
-    command="./kmer2snp -i $tmp_dir/${prefix} -l $left -r $right -k $kmer_size -t $thread -o $snp_dir/"
+    command="kmer2snp -i $tmp_dir/${prefix} -l $left -r $right -k $kmer_size -t $thread -o $snp_dir/"
     echo "$command"
-    ./kmer2snp -i "$tmp_dir/${prefix}" -l "$left" -r "$right" -k "$kmer_size" -t "$thread" -o "$snp_dir/"
+    kmer2snp -i "$tmp_dir/${prefix}" -l "$left" -r "$right" -k "$kmer_size" -t "$thread" -o "$snp_dir/"
 fi

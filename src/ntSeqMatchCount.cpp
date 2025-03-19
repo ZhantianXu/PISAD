@@ -17,7 +17,7 @@
 
 using namespace std;
 
-#define PROGRAM "ntsmCount"
+#define PROGRAM "pisadCount"
 
 void printHelpDialog() {
   const char dialog[] =
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
       while (getline(ss, file, ',')) {
         if (!file.empty()) {
           opt::snp.push_back(file);
-          bool valid = true;
+          valid = true;
         }
       }
       break;
@@ -151,10 +151,6 @@ int main(int argc, char *argv[]) {
     const std::string exts[] = {".fastq.gz", ".fq.gz", ".fastq", ".fq"};
     for (const auto &ext : exts) {
       lastDot = filename.rfind(ext);
-      if (lastDot != std::string::npos) {
-        cout << lastDot << endl;
-        break;
-      }
     }
     // size_t lastDot = filename.find_last_of(".");
 

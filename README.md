@@ -44,7 +44,7 @@ First, we select a low-error-rate sequencing dataset as the target sample for ra
 Example:
 
 ```bash
-./run.sh -i /data/hg002.fastq.gz -m 0
+run.sh -i /data/hg002.fastq.gz -m 0
 ```
 
 ```bash
@@ -73,7 +73,7 @@ Example:
 Next, we convert the called SNPs into a variant sketch.
 
 ```bash
-./create -i /snp/hg002_21_2_4_pairex.snp
+create -i /snp/hg002_21_2_4_pairex.snp
 ```
 
 ```bash
@@ -90,7 +90,7 @@ Next, we convert the called SNPs into a variant sketch.
 we compare the k-mer counts of other cohort samples to the variant sketch to infer relationships between them. Files may be gzipped and multiple threads can be used.
 
 ```bash
-./pisadCount -s /fa/hg002.fa /data/hg003.fastq.gz
+pisadCount -s /fa/hg002.fa /data/hg003.fastq.gz
 ```
 
 ```bash
@@ -115,7 +115,7 @@ If your input file has a high coverage, you can also add the `-m` parameter to c
 Input the statistics of samples to calculate their relationship and detect sample swaps.
 
 ```bash
-./pisadEval /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
+pisadEval /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
 ```
 
 ```bash
