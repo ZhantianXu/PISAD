@@ -61,11 +61,12 @@ using Map1 = phmap::parallel_flat_hash_map<
     unsigned long long, char, std::hash<unsigned long long>,
     std::equal_to<unsigned long long>,
     std::allocator<std::pair<const unsigned long long, char>>, 6, std::mutex>;
+
 using Map2 = phmap::parallel_flat_hash_map<
-    unsigned long long, std::vector<unsigned long long>,
-    std::hash<unsigned long long>, std::equal_to<unsigned long long>,
-    std::allocator<std::pair<const unsigned long long, std::vector<unsigned long long>>>,
-    6, std::mutex>;
+    unsigned long long, unsigned short, std::hash<unsigned long long>,
+    std::equal_to<unsigned long long>,
+    std::allocator<std::pair<const unsigned long long, unsigned short>>, 6,
+    std::mutex>;
 
 using Map3 = phmap::parallel_flat_hash_map<
     std::pair<unsigned long long, unsigned long long>,
@@ -73,8 +74,7 @@ using Map3 = phmap::parallel_flat_hash_map<
     std::equal_to<std::pair<unsigned long long, unsigned long long>>,
     std::allocator<std::pair<const std::pair<unsigned long long, unsigned long long>,
                   std::pair<std::string, std::string>>>,
-    6, // 假设你需要6个子映射
-    std::mutex>;
+    6, std::mutex>;
 
 // Function prototypes
 int calc_weightThreshold(int k);
@@ -112,8 +112,8 @@ void print_resident_memory() {
   statm >> size >> resident >> shared >> text >> lib >> data >> dt;
   statm.close();
 
-  long page_size = sysconf(_SC_PAGE_SIZE); 
-  double resident_gb = static_cast<double>(resident) * page_size /(1024 * 1024 * 1024); 
+  long page_size = sysconf(_SC_PAGE_SIZE);
+  double resident_gb = static_cast<double>(resident) * page_size /(1024 * 1024 * 1024);
   std::cout << "Resident memory: " << resident_gb << " GB" << std::endl;
 }
 double getPeakRSSInGB() {
@@ -144,15 +144,15 @@ std::tuple<unsigned long long, char> remove_bits(unsigned long long val, int k,i
   unsigned long long binarykmer = val & mask;
   int x1;
   int x2;
-  if (n == 0) 
+  if (n == 0)
   {
     x1 = k / 2 - 1;
     x2 = k / 2;
-  } else if (n == 1) 
+  } else if (n == 1)
   {
     x1 = 0;
     x2 = 1;
-  } else if (n == 2) 
+  } else if (n == 2)
   {
     x1 = k - 2;
     x2 = k - 1;
@@ -176,7 +176,6 @@ std::tuple<unsigned long long, char> remove_bits(unsigned long long val, int k,i
 
   return {new_val, removed_bits};
 }
-
 std::string get_filename(const std::string &path) {
   size_t pos = path.find_last_of('/');
   if (pos == std::string::npos) {
@@ -271,7 +270,6 @@ int main(int argc, char **argv) {
 
   try {
     std::string filename = get_filename(t1);
-
     omp_set_num_threads(thread);
     Map3 extendKmers;
 
@@ -333,6 +331,27 @@ int calc_weightThreshold(int k) {
   // return heteRate >= 0.005 ? 4 : (k - 3) / 2;
 }
 
+int get_m_num(unsigned short value) {
+  if (value == 0)
+    return -1;
+  int pos = 0;
+  while (value) {
+    pos++;
+    value >>= 1;
+  }
+  return pos - 1;
+}
+unsigned long long highestOneBitPosition(unsigned long long value,
+                                         unsigned long long value1, size_t x,
+                                         int k) {
+  unsigned long long low_bits =
+      ((value1 >> (2 * x)) & 1) | (((value1 >> (2 * x + 1)) & 1) << 1);
+  unsigned long long high_bits = (value >> (k - 1)) << 2;
+  unsigned long long result =
+      ((high_bits | low_bits) << (k - 1)) | (value & ((1ULL << (k - 1)) - 1));
+  return result;
+}
+
 std::vector<std::tuple<unsigned long long, unsigned long long, char>>
 snp_edges(const Map2 &m_index, int k, const Map1 &left_index,
           const Map1 &right_index, Map3 &extendKmers) {
@@ -363,14 +382,14 @@ snp_edges(const Map2 &m_index, int k, const Map1 &left_index,
     for (auto it = it_start; it != it_end; ++it) {
       const auto &key_val = *it;
       const auto &key = key_val.first;
-      const auto &m_key_len = key_val.second.size();
-      if (m_key_len == 1)
+      const auto &m_key_len = get_m_num(key_val.second);
+      if (m_key_len == 2)
         continue;
 
-      for (size_t i = 0; i < m_key_len - 1; ++i) {
-        for (size_t j = i + 1; j < m_key_len; ++j) {
-          unsigned long long k1 = key_val.second[i];
-          unsigned long long k2 = key_val.second[j];
+      for (size_t i = 0; i < m_key_len / 2 - 1; ++i) {
+        for (size_t j = i + 1; j < m_key_len / 2; ++j) {
+          unsigned long long k1 = highestOneBitPosition(key_val.first, key_val.second, i, k);
+          unsigned long long k2 = highestOneBitPosition(key_val.first, key_val.second, j, k);
           auto [ek1, ek2, supportPair, flag] =
               extend_one_pair(k1, k2, left_index, right_index, k);
           if (flag) {
@@ -665,7 +684,18 @@ std::tuple<Map1, Map1, Map2> read(const std::string &input_filename, int low,
         val = newval;
       auto [key, key_c] = remove_bits(val, k2, 0);
 
-      m_index[key].emplace_back(val);
+      //   m_index[key].emplace_back(val);
+      auto it = m_index.find(key);
+      if (it != m_index.end()) {
+        if (get_m_num(it->second) < 14) {
+          unsigned short new_value = (it->second << 2) + key_c;
+          m_index[key] = new_value;
+        }
+
+      } else {
+
+        m_index[key] = 4 + key_c;
+      }
 
       auto [lkey, lkey_c] = remove_bits(val, k2, 1);
       if (!left_index.insert({lkey, lkey_c}).second)
@@ -806,7 +836,7 @@ void build_graph_and_find_components(
     std::cerr << "Failed to open output file: " << snpFile << std::endl;
     return;
   }
-  std::string exsnpFile = name + "_" + std::to_string(k) + "_" + std::to_string(lowCov) + "_" +
+  std::string exsnpFile = name + "_" + std::to_string(k) + "_" +std::to_string(lowCov) + "_" +
                           std::to_string(highCov) + "_pairex.snp";
   std::ofstream exsnpOut(exsnpFile);
   if (!exsnpOut) {

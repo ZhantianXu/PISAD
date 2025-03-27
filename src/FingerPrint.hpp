@@ -267,7 +267,7 @@ public:
         file << outStr;
 
         if (opt::information) {
-          file << "\nlocusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdistinctAT\tdistinctCG\tref\tval\n";
+          file << "\n#locusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdistinctAT\tdistinctCG\tref\tval\n";
         } else {
           file << "\n#locusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdistinctAT\tdistinctCG\n";
         }

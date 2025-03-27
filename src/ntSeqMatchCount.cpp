@@ -145,13 +145,17 @@ int main(int argc, char *argv[]) {
   // Check needed options
   if (!inputFiles.empty()) {
     string filename = inputFiles[0];
+    cout << filename << endl;
 
     size_t lastSlash = filename.find_last_of("/");
     size_t lastDot = std::string::npos;
     const std::string exts[] = {".fastq.gz", ".fq.gz", ".fastq", ".fq"};
     for (const auto &ext : exts) {
-      lastDot = filename.rfind(ext);
-    }
+      size_t pos = filename.rfind(ext);
+      if (pos != std::string::npos && (lastDot == std::string::npos || pos > lastDot)) {
+        lastDot = pos;
+      }
+      }
     // size_t lastDot = filename.find_last_of(".");
 
     if (lastSlash != string::npos && lastDot != string::npos &&
