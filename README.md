@@ -53,7 +53,7 @@ run.sh -i /data/hg002.fastq.gz -m 0
       -m:        Heterozygosity parameter (0 for <1.2%, 1 otherwise)
     Optional parameters:
       -k:        kmer-size (default: 21)
-      -t:        thread (default: 8)"
+      -t:        thread (default: 8)
       -o:        Output prefix (defaults: first input file's prefix)
       -d1:       Directory for dsk files (default: current directory)
       -d2:       Directory for output plot (default: current directory)
@@ -125,3 +125,7 @@ pisadEval /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
         -h:      Display this dialog
 
 ```
+
+## contact
+
+Zhantian Xu, 1160926852@qq.com 
