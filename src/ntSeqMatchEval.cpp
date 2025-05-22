@@ -19,7 +19,7 @@
 
 using namespace std;
 
-#define PROGRAM "ntsmEval"
+#define PROGRAM "pisadEval"
 
 void printHelpDialog() {
   const string dialog =

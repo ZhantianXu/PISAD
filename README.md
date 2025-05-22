@@ -1,12 +1,10 @@
-# ntsm - Nucleotide Sequence/Sample Matcher
+# PISAD - Phsaed Intraspecies Sample Anomalies Detection tool
 
 ## Summary
 
 We developed PISAD, a tool designed to detect anomalies in cohort samples without requiring reference information. It is primarily divided into two stages. Stage 1: We select low-error data from the cohort and conduct reference-free SNP calling to construct a variant sketch. Stage 2: By comparing the k-mer counts of other cohort data to the variant sketch, we infer the relationships between the sample and other samples to detect the sample swap.
 
 ## Dependencies
-
-recommend use conda to install
 
 - GCC (Tested on 8.5.0)
 - gperftools(2.10)
@@ -15,11 +13,14 @@ recommend use conda to install
 
 ## Installation
 
-cloning the PISAD repository to your machine and enter its directory.
-
+pisad can be installed with conda using the command:
 ```bash
- git clone https://github.com/ZhantianXu/PISAD.git
- cd pisad/
+conda install bioconda::pisad
+```
+
+If cloning directly from the repository run:
+```bash
+./autogen.sh
 ```
 
 Compiling should be as easy as:
@@ -43,16 +44,16 @@ First, we select a low-error-rate sequencing dataset as the target sample for ra
 Example:
 
 ```bash
-./run.sh -i /data/hg002.fastq.gz -m 0
+run.sh -i /data/hg002.fastq.gz -m 0
 ```
 
-```bash
+```text
     Required parameters:
       -i:        Input files ( *.fastq or *.fastq.gz files)
       -m:        Heterozygosity parameter (0 for <1.2%, 1 otherwise)
     Optional parameters:
       -k:        kmer-size (default: 21)
-      -t:        thread (default: 8)"
+      -t:        thread (default: 8)
       -o:        Output prefix (defaults: first input file's prefix)
       -d1:       Directory for dsk files (default: current directory)
       -d2:       Directory for output plot (default: current directory)
@@ -72,10 +73,10 @@ Example:
 Next, we convert the called SNPs into a variant sketch.
 
 ```bash
-./create -i /snp/hg002_21_2_4_pairex.snp
+create -i /snp/hg002_21_2_4_pairex.snp
 ```
 
-```bash
+```text
     Required parameters:
       -i:        Input files ( .snp file)
     Optional parameters:
@@ -89,15 +90,15 @@ Next, we convert the called SNPs into a variant sketch.
 we compare the k-mer counts of other cohort samples to the variant sketch to infer relationships between them. Files may be gzipped and multiple threads can be used.
 
 ```bash
-./pisadCount -s /fa/hg002.fa /data/hg003.fastq.gz
+pisadCount -s /fa/hg002.fa /data/hg003.fastq.gz
 ```
 
-```bash
+```text
     Usage: ./pisadCount -s [FASTA] [OPTION]... [FILES...]
     Required options:
         -s:         variant sketch (one or more)
     Optional options:
-        -t:      Number of threads to run (default: 1)
+        -t:      Number of threads to run (default: Allocate 6 threads for each variant sketch file)
         -m:      k-mer coverage threshold for early termination (default: inf)
         -i:      extra debug information
         -k:      k-mer size used (default: 21)
@@ -107,17 +108,17 @@ we compare the k-mer counts of other cohort samples to the variant sketch to inf
 ```
 
 Here, the -s option allows inputting multiple FA files for variant sketching, separated by commas, such as `-s /fa/hg002.fa,/fa/hg001.fa`.
-If your input file has a high coverage, you can also add the `-m` parameter to control the reading process and save time, such as `-m 10`.
+If your input file has a high coverage, you can also add the `-m` parameter to control the reading process and save time, such as `-m 5`.
 
 ##### Stage2:Evaluate the samples:
 
 Input the statistics of samples to calculate their relationship and detect sample swaps.
 
 ```bash
-./pisadEval /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
+pisadEval /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
 ```
 
-```bash
+```text
     Usage: ./pisadEval [OPTION]... [FILES...]
     Optional options:
         -t:      Number of threads to run(default: 1)

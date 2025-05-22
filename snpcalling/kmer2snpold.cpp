@@ -30,24 +30,6 @@
 #include <boost/graph/properties.hpp>
 #include <boost/property_map/property_map.hpp>
 
-static inline uint64_t hash_64(uint64_t key)
-{ // more sophisticated hash function to reduce collisions
-  key = (~key + (key << 21)); // key = (key << 21) - key - 1;
-  key = key ^ key >> 24;
-  key = ((key + (key << 3)) + (key << 8)); // key * 265
-  key = key ^ key >> 14;
-  key = ((key + (key << 2)) + (key << 4)); // key * 21
-  key = key ^ key >> 28;
-  key = (key + (key << 31));
-  return key;
-}
-
-struct UllHash {
-  std::size_t operator()(const unsigned long long& key) const {
-      return hash_64(key);
-  }
-};
-
 // Hash function for pairs
 struct PairHash {
     template <class T1, class T2>
@@ -94,12 +76,12 @@ typedef std::pair<int, int> EdgePair;
 
 // Map type definitions using parallel hash maps
 using KmerCharMap = phmap::parallel_flat_hash_map<
-    unsigned long long, char, UllHash,
+    unsigned long long, char, std::hash<unsigned long long>,
     std::equal_to<unsigned long long>,
     std::allocator<std::pair<const unsigned long long, char>>, 10, spinlock_mutex>;
 
 using KmerCountMap = phmap::parallel_flat_hash_map<
-    unsigned long long, unsigned short, UllHash,
+    unsigned long long, unsigned short, std::hash<unsigned long long>,
     std::equal_to<unsigned long long>,
     std::allocator<std::pair<const unsigned long long, unsigned short>>, 10,
     spinlock_mutex>;
@@ -113,7 +95,7 @@ using KmerPairStringMap = phmap::parallel_flat_hash_map<
 
 // Set type definition
 using KmerSet = phmap::parallel_flat_hash_set<
-    unsigned long long, UllHash,
+    unsigned long long, std::hash<unsigned long long>,
     std::equal_to<unsigned long long>, std::allocator<unsigned long long>, 10,
     spinlock_mutex>;
 
@@ -342,7 +324,6 @@ public:
             hsize_t numObjs = root.getNumObjs();
             
             #pragma omp parallel for schedule(dynamic)
-            // #pragma omp parallel for 
             for (hsize_t i = 0; i < numObjs; ++i) {
                 std::string datasetName = root.getObjnameByIdx(i);
                 H5::DataSet dataset = root.openDataSet(datasetName);

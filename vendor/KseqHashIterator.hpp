@@ -8,7 +8,7 @@
 #ifndef KSEQHASHITERATOR_HPP_
 #define KSEQHASHITERATOR_HPP_
 
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <limits>
 

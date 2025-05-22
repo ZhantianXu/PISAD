@@ -1,7 +1,7 @@
 bin_PROGRAMS = pisadCount pisadEval
 
 # Global compilation and linking flags
-AM_CXXFLAGS = -g -gdwarf-4 -O3 -std=c++11 -fopenmp
+AM_CXXFLAGS = -std=c++17 -fopenmp
 AM_LDFLAGS = -fopenmp  # Ensure OpenMP is enabled during linking
 
 # pisadCount compilation rules
@@ -14,7 +14,8 @@ pisadCount_LDADD = -lz  # Add zlib library for compression support
 pisadCount_SOURCES = ntSeqMatchCount.cpp \
 	FingerPrint.hpp \
 	Options.cpp Options.h \
-	Util.h
+	Util.h \
+	FastxParser.cpp
 
 # pisadEval compilation rules
 pisadEval_CXXFLAGS = $(AM_CXXFLAGS)  # Inherit global AM_CXXFLAGS

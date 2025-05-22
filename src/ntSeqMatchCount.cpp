@@ -17,7 +17,7 @@
 
 using namespace std;
 
-#define PROGRAM "ntsmCount"
+#define PROGRAM "pisadCount"
 
 void printHelpDialog() {
   const char dialog[] =
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
       while (getline(ss, file, ',')) {
         if (!file.empty()) {
           opt::snp.push_back(file);
-          bool valid = true;
+          valid = true;
         }
       }
       break;
@@ -145,23 +145,23 @@ int main(int argc, char *argv[]) {
   // Check needed options
   if (!inputFiles.empty()) {
     string filename = inputFiles[0];
+    cout << filename << endl;
 
     size_t lastSlash = filename.find_last_of("/");
     size_t lastDot = std::string::npos;
     const std::string exts[] = {".fastq.gz", ".fq.gz", ".fastq", ".fq"};
     for (const auto &ext : exts) {
-      lastDot = filename.rfind(ext);
-      if (lastDot != std::string::npos) {
-        cout << lastDot << endl;
-        break;
+      size_t pos = filename.rfind(ext);
+      if (pos != std::string::npos && (lastDot == std::string::npos || pos > lastDot)) {
+        lastDot = pos;
       }
-    }
+      }
     // size_t lastDot = filename.find_last_of(".");
 
     if (lastSlash != string::npos && lastDot != string::npos &&
         lastSlash < lastDot) {
       extracted = filename.substr(lastSlash + 1, lastDot - lastSlash - 1);
-      cout << "Extracted string: " << extracted << endl;
+      cout << "Extracted prefix string: " << extracted << endl;
     } else {
       cout << "Invalid filename format!" << endl;
       die = true;
@@ -186,20 +186,12 @@ int main(int argc, char *argv[]) {
   double time = omp_get_wtime();
 
   FingerPrint fp;
-  cerr << "read fa" << endl;
-  cerr << "Time: " << omp_get_wtime() - time
-       << " s Memory: " << (Util::getRSS() / (1024 * 1024)) << " G" << endl;
+  cerr << "Sketch read time: " << omp_get_wtime() - time
+       << " s memory: " << (Util::getRSS() / (1024 * 1024)) << " G" << endl;
   fp.computeCounts(inputFiles);
-  // fp.computeCountsProducerConsumer(inputFiles);
-  // fp.printOptionalHeader();
-  // fp.printCountsMax();
-  // fp.printCountsAllCounts();
-  cerr << "begin print" << endl;
-  cerr << "Time: " << omp_get_wtime() - time
-       << " s Memory: " << (Util::getRSS() / (1024 * 1024)) << " G" << endl;
   fp.printCountsMode(extracted);
   cerr << fp.printInfoSummary() << endl;
-  cerr << "Time: " << omp_get_wtime() - time
-       << " s Memory: " << (Util::getRSS() / (1024 * 1024)) << " G" << endl;
+  cerr << "Total time: " << omp_get_wtime() - time
+       << " s memory: " << (Util::getRSS() / (1024 * 1024)) << " G" << endl;
   return 0;
 }

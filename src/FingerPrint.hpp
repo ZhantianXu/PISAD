@@ -10,6 +10,19 @@
 #include <unordered_map>
 #include <vector>
 #include <zlib.h>
+#include "vendor/FastxParser.hpp"
+#include <thread>
+#include <vector>
+
+#include "parallel_hashmap/btree.h"
+#include "parallel_hashmap/meminfo.h"
+#include "parallel_hashmap/phmap.h"
+#include "parallel_hashmap/phmap_base.h"
+#include "parallel_hashmap/phmap_bits.h"
+#include "parallel_hashmap/phmap_config.h"
+#include "parallel_hashmap/phmap_dump.h"
+#include "parallel_hashmap/phmap_fwd_decl.h"
+#include "parallel_hashmap/phmap_utils.h"
 
 #include "vendor/KseqHashIterator.hpp"
 #include "vendor/concurrentqueue.h"
@@ -40,6 +53,15 @@ public:
   }
 
   void computeCounts(const vector<string> &filenames) {
+    if(opt::threads<=filenames.size() && opt::threads!=0){
+      computeCountsSingle(filenames);
+    }
+    else{
+      processWithFastxParseropenmp(filenames);
+    }
+  }
+
+  void computeCountsSingle(const vector<string> &filenames) {
 #pragma omp parallel for
     for (unsigned i = 0; i < filenames.size(); ++i) {
       gzFile fp;
@@ -47,30 +69,18 @@ public:
       if (fp == Z_NULL) {
 #pragma omp critical(stderr)
         {
-          std::cerr << "file " << filenames[i] << " cannot be opened"
-                    << std::endl;
+          std::cerr << "file " << filenames[i] << " cannot be opened"<< std::endl;
         }
         exit(1);
       } else if (opt::verbose) {
 #pragma omp critical(stderr)
         { std::cerr << "Opening " << filenames[i] << std::endl; }
       }
-      // read in seq
       kseq_t *seq = kseq_init(fp);
       int l = kseq_read(seq);
-      // cerr << l << m_earlyTerm << endl;
       while (l >= 0 && !m_earlyTerm) {
-        processSingleRead(seq);
+        insertCount(seq->seq.s, seq->seq.l);
         l = kseq_read(seq);
-        if (opt::verbose > 2) {
-#pragma omp critical(stderr)
-          if ((m_totalReads % 1000000) == 0) {
-            cerr << "Current Total: " << m_totalReads << " reads, "
-                 << m_totalKmers << " k-mers, " << m_totalCounts
-                 << " total counts, and " << m_totalBases << " total bases "
-                 << endl;
-          }
-        }
       }
       kseq_destroy(seq);
       gzclose(fp);
@@ -80,167 +90,69 @@ public:
   void insertCount(const char *seqs, uint64_t seql, unsigned multiplier = 1) {
     for (KseqHashIterator itr(seqs, seql, opt::k); itr != itr.end(); ++itr) {
       if (m_counts.find(*itr) != m_counts.end()) {
-#pragma omp atomic update
-        // #pragma omp critical
+  #pragma omp critical
         m_counts[*itr] += multiplier;
-        // m_counts.modify_if(*itr, [multiplier](std::pair<const uint64_t,
-        // size_t> &item) 				   { item.second +=
-        // multiplier;
-        // });
 
 #pragma omp atomic update
         m_totalCounts += multiplier;
       }
-#pragma omp atomic update
-      ++m_totalKmers;
     }
-#pragma omp atomic update
-    m_totalBases += seql;
   }
 
-  // use only if threads > number of files
-  void computeCountsProducerConsumer(const vector<string> &filenames) {
-    if (opt::threads <= filenames.size()) {
-      // not enough threads to saturate
-      computeCounts(filenames);
-    } else {
-      uint64_t numReads = 0, processedCount = 0;
-
-      moodycamel::ConcurrentQueue<kseq_t> workQueue(opt::threads * s_bulkSize);
-      moodycamel::ConcurrentQueue<kseq_t> recycleQueue(opt::threads * s_bulkSize * 2);
-      bool good = true;
-      typedef std::vector<kseq_t>::iterator iter_t;
-
-      // fill recycleQueue with empty objects
-      {
-        std::vector<kseq_t> buffer(opt::threads * s_bulkSize * 2, kseq_t());
-        recycleQueue.enqueue_bulk(std::move_iterator<iter_t>(buffer.begin()),buffer.size());
+  void processWithFastxParseropenmp(const vector<string> &filenames) {
+    size_t numProducers,numConsumers;
+    if(opt::threads==0){
+      unsigned int cores = std::thread::hardware_concurrency();
+      if(cores>=filenames.size()*6){
+        numProducers = filenames.size();
+        numConsumers = filenames.size()*5;
+      }else{
+        numProducers = cores/6;
+        numConsumers = numProducers*5;
       }
+    }else{
+      numProducers = (opt::threads / 6 < filenames.size()) ? (opt::threads / 6) : filenames.size();
+      numConsumers = numProducers*5;
+    }
+    size_t batchSize = 1024;
+    
+    
+    // 使用FastxParser库解析FASTQ文件
+    fastx_parser::FastxParser<fastx_parser::ReadSeq> parser(filenames, numConsumers,numProducers, batchSize);
+    parser.start();
+    
+    #pragma omp parallel num_threads(numConsumers)
+    {
+      // 每个线程获取一个读取组
+      auto rg = parser.getReadGroup();
+      
+      while (true) {
 
-#pragma omp parallel
-      {
-        std::vector<kseq_t> readBuffer(s_bulkSize);
-        string outBuffer;
-        if (unsigned(omp_get_thread_num()) < filenames.size()) {
-          // file reading init
-          gzFile fp;
-          fp = gzopen(filenames.at(omp_get_thread_num()).c_str(), "r");
-          std::cerr << "Opening " << filenames.at(omp_get_thread_num()) << std::endl;
-
-          kseq_t *seq = kseq_init(fp);
-
-          // per thread token
-          moodycamel::ProducerToken ptok(workQueue);
-
-          // tokens for recycle queue
-          moodycamel::ConsumerToken rctok(recycleQueue);
-          moodycamel::ProducerToken rptok(recycleQueue);
-
-          unsigned dequeueSize = recycleQueue.try_dequeue_bulk(rctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
-          while (dequeueSize == 0) {
-            dequeueSize = recycleQueue.try_dequeue_bulk(rctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
+        // 尝试填充读取组
+        if (parser.refill(rg)) {
+          // 处理读取组中的所有序列
+          for (auto& read : rg) {
+            insertCount(read.seq.c_str(), read.seq.length());
           }
-
-          unsigned size = 0;
-          while (kseq_read(seq) >= 0 && !m_earlyTerm) {
-            cpy_kseq(&readBuffer[size++], seq);
-            if (dequeueSize == size) {
-              // try to insert, if cannot queue is full
-              while (!workQueue.try_enqueue_bulk(ptok, std::move_iterator<iter_t>(readBuffer.begin()), size)) {
-                // try to work
-                if (kseq_read(seq) >= 0) {
-                  //------------------------WORK CODE
-                  // START---------------------------------------
-                  processSingleRead(seq);
-                  //------------------------WORK CODE
-                  // END-----------------------------------------
-                } else {
-                  goto fileEmpty;
-                }
-              }
-              // reset buffer
-              dequeueSize = recycleQueue.try_dequeue_bulk(rctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
-              while (dequeueSize == 0) {
-                // try to work
-                if (kseq_read(seq) >= 0) {
-                  //------------------------WORK CODE
-                  // START---------------------------------------
-                  processSingleRead(seq);
-                  //------------------------WORK CODE
-                  // END-----------------------------------------
-                } else {
-                  goto fileEmpty;
-                }
-                dequeueSize = recycleQueue.try_dequeue_bulk(rctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
-              }
-              size = 0;
-            }
+          
+          // 通知解析器我们已经完成了这个读取组的处理
+          parser.finishedWithGroup(rg);
+  
+          // 在处理完一组后检查是否达到最大计数阈值
+          if (m_maxCounts != 0 && m_totalCounts > m_maxCounts ) {
+            parser.requestStop();
           }
-        fileEmpty:
-          // finish off remaining work
-          for (unsigned i = 0; i < size; ++i) {
-            //------------------------WORK CODE
-            // START---------------------------------------
-            processSingleRead(seq);
-            //------------------------WORK CODE
-            // END-----------------------------------------
-          }
-          assert(recycleQueue.enqueue_bulk(rptok, std::move_iterator<iter_t>(readBuffer.begin()), size));
-          if (processedCount < numReads) {
-            moodycamel::ConsumerToken ctok(workQueue);
-            // join in if others are still not finished
-            while (processedCount < numReads) {
-              size_t num = workQueue.try_dequeue_bulk(ctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
-              if (num) {
-                for (unsigned i = 0; i < num; ++i) {
-                  //------------------------WORK CODE
-                  // START---------------------------------------
-                  processSingleRead(seq);
-                  //------------------------WORK CODE
-                  // END-----------------------------------------
-                }
-                assert(recycleQueue.enqueue_bulk(rptok, std::move_iterator<iter_t>(readBuffer.begin()),num));
-              }
-            }
-          }
-#pragma omp atomic update
-          good &= false;
-          kseq_destroy(seq);
-          gzclose(fp);
+          
         } else {
-          moodycamel::ConsumerToken ctok(workQueue);
-          moodycamel::ProducerToken rptok(recycleQueue);
-          while (good) {
-            if (workQueue.size_approx() >= s_bulkSize) {
-              size_t num = workQueue.try_dequeue_bulk(ctok, std::move_iterator<iter_t>(readBuffer.begin()),s_bulkSize);
-              if (num) {
-                for (unsigned i = 0; i < num; ++i) {
-                  //------------------------WORK CODE
-                  // START---------------------------------------
-                  processSingleRead(&readBuffer[i]);
-                  //------------------------WORK CODE
-                  // END-----------------------------------------
-                }
-                assert(recycleQueue.enqueue_bulk(rptok, std::move_iterator<iter_t>(readBuffer.begin()),num));
-              }
-            }
-          }
+          // 没有更多数据可处理，退出循环
+          break;
         }
       }
-    }
+    } 
+    // 停止解析器
+    parser.stop();
   }
 
-  /*
-   * Prints summary info needed for computing error rate
-   */
-  void printOptionalHeader() const {
-    string outStr = "";
-    outStr += "#@TK\t";
-    outStr += std::to_string(m_totalKmers);
-    outStr += "\n#@KS\t";
-    outStr += std::to_string(opt::k);
-    cout << outStr;
-  }
 
   void printCountsMode(std::string &extracted) const {
     for (unsigned y = 0; y < opt::snp.size(); ++y) {
@@ -260,16 +172,16 @@ public:
                   << " is opened" << std::endl;
 
         string outStr = "";
-        outStr += "#@TK\t";
-        outStr += std::to_string(m_totalKmers);
-        outStr += "\n#@KS\t";
-        outStr += std::to_string(opt::k);
-        file << outStr;
+        // outStr += "#@TK\t";
+        // outStr += std::to_string(m_totalKmers);
+        // outStr += "\n#@KS\t";
+        // outStr += std::to_string(opt::k);
+        // file << outStr;
 
         if (opt::information) {
-          file << "\nlocusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdistinctAT\tdistinctCG\tref\tval\n";
+          file << "#locusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdistinctAT\tdistinctCG\tref\tval\n";
         } else {
-          file << "\n#locusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdistinctAT\tdistinctCG\n";
+          file << "#locusID\tmaxAT\tmaxCG\tcountAT\tcountCG\tsumAT\tsumCG\tdistinctAT\tdistinctCG\n";
         }
         string tempStr_ref, tempStr_val;
         for (size_t i = 0; i < m_alleleIDs[y].size(); ++i) {
@@ -412,12 +324,6 @@ public:
   string printInfoSummary() {
 
     string outStr = "";
-    outStr += "Total Bases Considered: ";
-    outStr += std::to_string(getTotalCounts());
-    outStr += "\n";
-    outStr += "Total k-mers Considered: ";
-    outStr += std::to_string(m_totalKmers);
-    outStr += "\n";
     outStr += "Total k-mers Recorded: ";
     outStr += std::to_string(getTotalKmerCounts());
     outStr += "\n";
@@ -440,8 +346,8 @@ private:
   // 										   std::equal_to<uint64_t>,
   // 										   std::allocator<std::pair<const
   // uint64_t,
-  // size_t>>, 6, std::mutex>;
-  // // Map1 m_counts;
+  // size_t>>, 10, std::mutex>;
+  // Map1 m_counts;
   // tsl::robin_map<uint64_t, size_t, robin_hood::hash<uint64_t>> m_counts; //
   // k-mer to count
   tsl::robin_map<uint64_t, size_t> m_counts; // k-mer to count
@@ -456,43 +362,19 @@ private:
   //	unsigned m_maxSiteSize;
   //	static const unsigned interval = 65536;
 
-  void processSingleRead(kseq_t *seq) {
-    // k-merize and insert
-    insertCount(seq->seq.s, seq->seq.l);
-    // cerr << m_maxCounts << m_totalCounts << m_earlyTerm << endl;
-    m_totalReads++;
-    if (m_maxCounts != 0 && m_totalCounts > m_maxCounts) {
-      if (opt::verbose > 0) {
-#pragma omp critical(stderr)
-        {
-          cerr << "max count reached at " << m_totalReads << " reads, "
-               << m_totalKmers << " k-mers, " << m_totalCounts
-               << " total counts, and " << m_totalBases << " total bases "
-               << endl;
-        }
-      }
-      m_earlyTerm = true;
-    }
-  }
 
   void initCountsHash() {
     m_alleleIDToKmerRef.resize(opt::snp.size());
     m_alleleIDToKmerVar.resize(opt::snp.size());
     m_alleleIDs.resize(opt::snp.size());
-    // #pragma omp parallel for
     for (unsigned i = 0; i < opt::snp.size(); ++i) {
       gzFile fp;
       fp = gzopen(opt::snp[i].c_str(), "r");
       if (fp == Z_NULL) {
-#pragma omp critical(stderr)
-        {
-          std::cerr << "file " << opt::snp[i] << " cannot be opened"
-                    << std::endl;
-        }
-        exit(1);
-      } else if (opt::verbose) {
-#pragma omp critical(stderr)
-        { std::cerr << "Opening " << opt::snp[i] << std::endl; }
+          std::cerr << "file " << opt::snp[i] << " cannot be opened" << std::endl;
+          exit(1);
+      } else{
+        std::cerr << "Reading " << opt::snp[i] << std::endl; 
       }
 
       kseq_t *seq = kseq_init(fp);
@@ -535,10 +417,7 @@ private:
       kseq_destroy(seq);
       gzclose(fp);
 
-      cerr << "m_alleleIDs " << m_alleleIDs[i].size() << endl;
-      cerr << "m_alleleIDToKmerRef " << m_alleleIDToKmerRef[i].size() << endl;
-      cerr << "m_alleleIDToKmerVar " << m_alleleIDToKmerVar[i].size() << endl;
-      cerr << "mcounts " << m_counts.size() << endl;
+      cerr << "alleleIDs_nums " << m_alleleIDs[i].size() << endl;
     }
   }
 };

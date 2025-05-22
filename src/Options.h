@@ -22,7 +22,7 @@ using namespace std;
 namespace opt {
 
 int verbose = 0;
-unsigned threads = 1;
+unsigned threads = 0;
 unsigned k = 21;
 unsigned coverage = 30;
 double scoreThresh = 0.63;
