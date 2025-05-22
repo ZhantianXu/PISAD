@@ -98,7 +98,7 @@ pisadCount -s /fa/hg002.fa /data/hg003.fastq.gz
     Required options:
         -s:         variant sketch (one or more)
     Optional options:
-        -t:      Number of threads to run (default: Allocate 6 threads for each variant sketch file)
+        -t:      Number of threads to run (default: Allocate 6 threads for each sequencing file)
         -m:      k-mer coverage threshold for early termination (default: inf)
         -i:      extra debug information
         -k:      k-mer size used (default: 21)
@@ -125,7 +125,3 @@ pisadEval /homeb/xuzt/coverage/eval/hg002_hg003.txt > summary.tsv
         -h:      Display this dialog
 
 ```
-
-## contact
-
-Zhantian Xu, 1160926852@qq.com 
